@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>LSApplicationQueriesSchemes</key>
+	<array>
+		<string>google</string>
+		<string>com.googleusercontent.apps.187292738333-ntkvudt5kssf3jaubbmkqg0rl2mfoef3</string>
+	</array>
+	<key>GIDClientID</key>
+	<string>187292738333-ntkvudt5kssf3jaubbmkqg0rl2mfoef3.apps.googleusercontent.com</string>
+	<key>API_BASE_URL</key>
+	<string>http://192.168.19.219:8000/api</string>
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleURLName</key>
+			<string>com.googleusercontent.apps.187292738333-ntkvudt5kssf3jaubbmkqg0rl2mfoef3</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+                <string>gymmembership</string>
+			</array>
+		</dict>
+	</array>
+	<key>NSAllowsArbitraryLoads</key>
+	<true/>
+</dict>
+</plist>
