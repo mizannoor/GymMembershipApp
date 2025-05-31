@@ -12,8 +12,8 @@ struct PlanSelectionView: View {
     @State private var showPayment = false
     @State private var membershipId: Int?
     @State private var selectedPlan: Plan?
-    @State private var errorMessage: String?
-    @State private var isLoading = false
+//    @State private var errorMessage: String?
+//    @State private var isLoading = false
 
     var body: some View {
         NavigationView {
@@ -29,9 +29,9 @@ struct PlanSelectionView: View {
 
     @ViewBuilder
     private var contentView: some View {
-        if isLoading {
+        if vm.isLoading {
             ProgressView("Loading plans…")
-        } else if let error = errorMessage {
+        } else if let error = vm.errorMessage {
             Text(error)
                 .foregroundColor(.red)
                 .multilineTextAlignment(.center)
@@ -42,24 +42,20 @@ struct PlanSelectionView: View {
 
     private var planList: some View {
         List(vm.plans) { plan in
-            Button(action: {
+            Button {
                 Task { await subscribeAndPay(plan: plan) }
-            }) {
-                planRow(plan)
+            } label: {
+                PlanRowView(plan: plan)
             }
-            .disabled(isLoading)
         }
-    }
-
-    private func planRow(_ plan: Plan) -> some View {
-        HStack {
-            VStack(alignment: .leading) {
-                Text(plan.name).font(.headline)
-                Text(plan.subtitle).font(.subheadline)
-            }
-            Spacer()
-            Text(plan.formattedPrice).bold()
-        }
+        // Apply loading / error / empty container:
+        .loadingErrorEmpty(
+            isLoading: vm.isLoading,
+            errorMessage: vm.errorMessage,
+            isEmpty: vm.plans.isEmpty,
+            emptyMessage: "No plans available."
+        )
+        .listStyle(PlainListStyle())
     }
 
     private var refreshToolbar: some ToolbarContent {
@@ -75,7 +71,7 @@ struct PlanSelectionView: View {
     private var sheetView: some View {
         NavigationView {
             if let id = membershipId, let plan = selectedPlan {
-                PaymentView(membershipId: id/*, amount: plan.price*/)
+                PaymentView(membershipId: id, amount: plan.price)
             } else {
                 Text("Something went wrong.")
             }
@@ -88,23 +84,23 @@ struct PlanSelectionView: View {
     }
 
     private func loadPlans() async {
-        isLoading = true
-        defer { isLoading = false }
-        errorMessage = nil
-        await vm.loadPlans()
+        vm.isLoading = true
+        defer { vm.isLoading = false }
+        vm.errorMessage = nil
+        vm.loadPlans()
     }
 
     private func subscribeAndPay(plan: Plan) async {
-        isLoading = true
-        defer { isLoading = false }
-        errorMessage = nil
+        vm.isLoading = true
+        defer { vm.isLoading = false }
+        vm.errorMessage = nil
         do {
             let membership = try await APIClient.shared.subscribeAndReturnMembership(to: plan.id)
             membershipId = membership.id
             selectedPlan = plan
             showPayment = true
         } catch {
-            errorMessage = error.localizedDescription
+            vm.errorMessage = error.localizedDescription
         }
     }
 }

@@ -17,14 +17,7 @@ struct SideMenu: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 24) {
             ForEach(MenuOption.allCases) { option in
-                HStack(spacing: 12) {
-                    Image(systemName: option.iconName)
-                        .frame(width: 24, height: 24)
-                    Text(option.rawValue)
-                        .font(.headline)
-                }
-                .padding(.vertical, 8)
-                .onTapGesture {
+                SideMenuRow(option: option) {
                     withAnimation {
                         isOpen = false
                         if option == .signOut {
@@ -35,6 +28,7 @@ struct SideMenu: View {
                     }
                 }
             }
+
             Spacer()
         }
         .padding(.top, 100)

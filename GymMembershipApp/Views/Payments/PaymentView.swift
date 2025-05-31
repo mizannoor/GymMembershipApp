@@ -10,6 +10,7 @@ import AuthenticationServices
 
 struct PaymentView: View {
     let membershipId: Int
+    let amount: Double
 
     @Environment(\.presentationMode) private var presentation
     @State private var isLoading        = true
@@ -84,7 +85,7 @@ struct PaymentView: View {
 
         let session = ASWebAuthenticationSession(
             url: url,
-            callbackURLScheme: "gymmembership"
+            callbackURLScheme: Constants.callbackURLScheme
         ) { callback, error in
             DispatchQueue.main.async {
                 if let cb = callback,
