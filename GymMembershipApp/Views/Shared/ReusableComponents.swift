@@ -220,3 +220,24 @@ struct SideMenuRow: View {
         .onTapGesture { action() }
     }
 }
+
+
+/// A simple “toast” banner that slides in at the top and then fades away.
+struct ToastView: View {
+    let message: String
+
+    var body: some View {
+        Text(message)
+            .font(.subheadline).bold()
+            .foregroundColor(.white)
+            .multilineTextAlignment(.center)
+            .padding(.horizontal, 16)
+            .padding(.vertical, 10)
+            .background(
+                Capsule()
+                    .fill(Color.black.opacity(0.8))
+            )
+            .shadow(radius: 4)
+            .padding(.horizontal, 40)
+    }
+}

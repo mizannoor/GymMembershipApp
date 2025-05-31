@@ -19,9 +19,8 @@ final class KeychainHelper {
     static let standard = KeychainHelper()
     private init() { }
 
-    /// Save data into the Keychain under a given service + account.
     func save(_ data: Data, service: String, account: String) {
-        // 1. Create query to delete any existing item first
+        // Existing implementation…
         let query: [String: Any] = [
             kSecClass as String       : kSecClassGenericPassword,
             kSecAttrService as String : service,
@@ -29,7 +28,6 @@ final class KeychainHelper {
         ]
         SecItemDelete(query as CFDictionary)
 
-        // 2. Create query to add new item
         let addQuery: [String: Any] = [
             kSecClass as String       : kSecClassGenericPassword,
             kSecAttrService as String : service,
@@ -39,7 +37,6 @@ final class KeychainHelper {
         SecItemAdd(addQuery as CFDictionary, nil)
     }
 
-    /// Read data from the Keychain for a given service + account.
     func read(service: String, account: String) -> Data? {
         let query: [String: Any] = [
             kSecClass as String       : kSecClassGenericPassword,
@@ -55,7 +52,6 @@ final class KeychainHelper {
         return (item as? Data)
     }
 
-    /// Delete any stored item for a given service + account.
     func delete(service: String, account: String) {
         let query: [String: Any] = [
             kSecClass as String       : kSecClassGenericPassword,
@@ -75,6 +71,10 @@ enum APIError: Error {
     case decodingError(String)
     case serverError(String)
     case notAuthenticated
+}
+// Callers expect { "membership": { … } } or { "membership": null }
+fileprivate struct CurrentMembershipResponse: Decodable {
+    let membership: MembershipData?
 }
 
 // MARK: - APIClient
@@ -99,31 +99,25 @@ final class APIClient {
         method: String = "GET",
         body: Data? = nil
     ) throws -> URLRequest {
-        // 1. Construct URL from baseURL + path
         let url = baseURL.appendingPathComponent(path)
-        
-        // 2. Initialize URLRequest
         var request = URLRequest(url: url)
         request.httpMethod = method
         
-        // 3. Attach JSON headers
+        // Attach JSON headers
         request.setValue(Constants.applicationJson, forHTTPHeaderField: Constants.acceptHeader)
         request.setValue(Constants.applicationJson, forHTTPHeaderField: Constants.contentTypeHeader)
         
-        // 4. Attach Bearer token if available
+        // Attach Bearer token if available
         if let data = KeychainHelper.standard.read(
             service: Constants.keychainService,
             account: Constants.keychainAccount
-        ),
-           let token = String(data: data, encoding: .utf8),
-           !token.isEmpty {
+        ), let token = String(data: data, encoding: .utf8), !token.isEmpty {
             request.setValue(
                 "\(Constants.bearerTokenPrefix)\(token)",
                 forHTTPHeaderField: Constants.authorizationHeader
             )
         }
-        
-        // 5. Assign HTTP body if provided
+        print("🔷 makeRequest:", method, url)
         request.httpBody = body
         return request
     }
@@ -134,18 +128,26 @@ final class APIClient {
     ) async throws -> T {
         let (data, response) = try await URLSession.shared.data(for: request)
         
-        // 1. Ensure we got an HTTPURLResponse
+        // DEBUG: Print HTTPURLResponse or fallback
+          if let httpResp = response as? HTTPURLResponse {
+            print("🔷 HTTP status code:", httpResp.statusCode)
+          } else {
+            print("🔷 Response was not HTTPURLResponse:", response)
+          }
+
+          // DEBUG: Print raw response body
+          if let text = String(data: data, encoding: .utf8) {
+            print("🔸 Raw response body:", text)
+          }
+        
         guard let httpResp = response as? HTTPURLResponse else {
             throw APIError.invalidResponse
         }
-        
-        // 2. Validate 2xx status code
         guard (200...299).contains(httpResp.statusCode) else {
             let bodyString = String(data: data, encoding: .utf8) ?? "No body"
             throw APIError.serverError("Status \(httpResp.statusCode): \(bodyString)")
         }
         
-        // 3. Decode JSON into the expected type
         do {
             return try jsonDecoder.decode(T.self, from: data)
         } catch {
@@ -156,7 +158,7 @@ final class APIClient {
     // MARK: - Public API Methods (async/await)
     
     /// 1) Exchange Google ID token for backend JWT.
-    ///    Note: This remains callback-based because GoogleSignIn SDK uses a closure.
+    ///    Note: This remains callback‐based because GoogleSignIn SDK uses a closure.
     func authenticateWithGoogle(
         idToken: String,
         completion: @escaping (Result<AuthResponse, Error>) -> Void
@@ -199,7 +201,7 @@ final class APIClient {
         }.resume()
     }
     
-    /// 2) Fetch current user’s dashboard data (status + QR).
+    /// 2) Fetch current user’s dashboard data (status, QR, start/end dates).
     func fetchDashboard() async throws -> DashboardResponse {
         let request = try makeRequest(path: "dashboard")
         return try await sendRequest(request)
@@ -219,14 +221,44 @@ final class APIClient {
         let _: EmptyResponse = try await sendRequest(request)
     }
     
-    /// 5) Create a checkout link for a membership; returns `CheckoutLinkResponse`.
+    /// 5) Subscribe to a plan *and* return the new membership‐object immediately.
+    func subscribeAndReturnMembership(to planID: Int) async throws -> MembershipData {
+        // 1) Encode body
+        let bodyData = try JSONEncoder().encode(["plan_id": planID])
+
+        // 2) Build the request (POST /subscribe)
+        let subscribeRequest = try makeRequest(path: "subscribe", method: "POST", body: bodyData)
+
+        // 3) Fire the request
+        let (_, response) = try await URLSession.shared.data(for: subscribeRequest)
+
+        // 4) Ensure it was 201 Created
+        guard let httpResp = response as? HTTPURLResponse, httpResp.statusCode == 201 else {
+            throw APIError.invalidResponse
+        }
+
+        // 5) Now call “GET /membership/current” and decode the JSON { "membership": { … } }
+        let currentRequest = try makeRequest(path: "membership/current")
+        let wrapper: CurrentMembershipResponse = try await sendRequest(currentRequest)
+
+        // 6) Unwrap and return
+        if let membership = wrapper.membership {
+            return membership
+        } else {
+            // If backend returned { "membership": null }, treat as error or return a default
+            throw APIError.serverError("No membership data returned")
+        }
+    }
+
+    
+    /// 6) Create a checkout link for a membership; returns `CheckoutLinkResponse`.
     func createCheckoutLink(for membershipId: Int) async throws -> CheckoutLinkResponse {
         let bodyData = try JSONEncoder().encode(["membership_id": membershipId])
         let request = try makeRequest(path: "payment/checkout-link", method: "POST", body: bodyData)
         return try await sendRequest(request)
     }
 
-    /// 6) Check the status of a payment. Returns a string like "success" or "pending".
+    /// 7) Check the status of a payment. Returns a string like "success" or "pending".
     func checkPaymentStatus(paymentId: Int) async throws -> String {
         let request = try makeRequest(path: "payment/\(paymentId)/status")
         let wrapper: [String: String] = try await sendRequest(request)
@@ -236,30 +268,24 @@ final class APIClient {
         return status
     }
     
-    /// 7) Fetch all past payments.
+    /// 8) Fetch all past payments.
     func fetchPayments() async throws -> [Payment] {
         let request = try makeRequest(path: "payments")
         return try await sendRequest(request)
     }
     
-    /// 8) Create a new payment. Returns `CreatePaymentResponse`.
+    /// 9) Create a new payment. Returns `CreatePaymentResponse`.
     func createPayment(body: [String: Any]) async throws -> CreatePaymentResponse {
         let jsonData = try JSONSerialization.data(withJSONObject: body)
         let request = try makeRequest(path: "payment/create", method: "POST", body: jsonData)
         return try await sendRequest(request)
     }
     
-    /// 9) Subscribe to a plan and return the created membership immediately.
-    func subscribeAndReturnMembership(to planID: Int) async throws -> MembershipData {
-        var request = try makeRequest(path: "subscribe", method: "POST")
-        request.httpBody = try JSONEncoder().encode(["plan_id": planID])
-        
-        let (data, response) = try await URLSession.shared.data(for: request)
-        guard let httpResp = response as? HTTPURLResponse, httpResp.statusCode == 201 else {
-            let str = String(data: data, encoding: .utf8) ?? "Unknown error"
-            throw APIError.serverError(str)
-        }
-        let wrapper = try jsonDecoder.decode(MembershipResponse.self, from: data)
-        return wrapper.membership
+    /// 10) **Cancel an active membership.**
+    ///     Replace `"subscription/cancel"` with whatever your backend expects.
+    func cancelSubscription() async throws {
+        // If backend requires a body, add it here; otherwise, this stub assumes no JSON body:
+        let request = try makeRequest(path: "subscription/cancel", method: "POST")
+        let _: EmptyResponse = try await sendRequest(request)
     }
 }

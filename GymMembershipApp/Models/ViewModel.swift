@@ -1,5 +1,5 @@
 //
-//  ViewModels.swift
+//  ViewModel.swift
 //  GymMembershipApp
 //
 //  Created by imac4 on 31/05/2025.
@@ -30,7 +30,6 @@ extension Loadable {
         onSuccess: @escaping (T) -> Void
     ) {
         Task {
-            // Because the protocol is @MainActor, these property changes are on the main actor
             self.isLoading = true
             self.errorMessage = nil
 
@@ -66,9 +65,7 @@ final class AuthViewModel: ObservableObject {
     }
 
     private func handle(user: GIDGoogleUser) {
-        // Only check that an ID token exists (we don’t need the local variable).
         guard user.idToken?.tokenString != nil else { return }
-        // Here you’d exchange the ID token for your backend JWT in your View/Coordinator.
         DispatchQueue.main.async {
             self.isAuthenticated = true
         }
@@ -123,24 +120,49 @@ class PlanViewModel: ObservableObject, Loadable {
 }
 
 
+// ──────────────────────────────────────────────────────────────────────────────
 // MARK: - DashboardViewModel
-
-/// Retrieves dashboard status and QR code.
 @MainActor
 class DashboardViewModel: ObservableObject, Loadable {
     @Published var statusText: String = ""
     @Published var qrImage: Image?
+    @Published var qrBase64: String?        // <- new: store the raw Base64 string
     @Published var isLoading = false
     @Published var errorMessage: String?
 
-    /// Fetches current user’s dashboard data.
+    @Published var startDateText: String = ""
+    @Published var endDateText: String = ""
+
+    private let isoFormatter = ISO8601DateFormatter()
+    private let displayFormatter: DateFormatter = {
+        let f = DateFormatter()
+        f.dateStyle = .medium
+        f.timeStyle = .none
+        return f
+    }()
+    private let dateOnlyFormatter: DateFormatter = {
+       let f = DateFormatter()
+       f.dateFormat = "yyyy-MM-dd"
+       f.locale = Locale(identifier: "en_US_POSIX")
+       return f
+    }()
+
     func loadDashboard() {
         perform({
             try await APIClient.shared.fetchDashboard()
         }) { dash in
-            self.statusText = (dash.status ?? "Unknown").capitalized
+            // 1) StatusText using membership.status.name...
+            if let membership = dash.membership,
+               let statusName = membership.status?.name {
+                self.statusText = statusName.capitalized
+            } else {
+                self.statusText = "No Membership"
+            }
 
-            // Decode Base64 QR string into SwiftUI Image
+            // 2) Keep the raw Base64 string
+            self.qrBase64 = dash.qr
+
+            // 3) Convert Base64→UIImage→SwiftUI Image
             if let base64String = dash.qr,
                let data = Data(base64Encoded: base64String),
                let uiImage = UIImage(data: data) {
@@ -148,10 +170,29 @@ class DashboardViewModel: ObservableObject, Loadable {
             } else {
                 self.qrImage = nil
             }
+            
+            // 4) Parse start_date / end_date from nested membership
+            if let membership = dash.membership {
+                if let startsString = membership.startsAt,
+                   let date = self.dateOnlyFormatter.date(from: startsString) {
+                    self.startDateText = self.dateOnlyFormatter.string(from: date)
+                } else {
+                    self.startDateText = "—?"
+                }
+
+                if let expiresString = membership.expiresAt,
+                   let date = self.dateOnlyFormatter.date(from: expiresString) {
+                    self.endDateText = self.dateOnlyFormatter.string(from: date)
+                } else {
+                    self.endDateText = "—?"
+                }
+            } else {
+                self.startDateText = "?—"
+                self.endDateText   = "?—"
+            }
         }
     }
 }
-
 
 // MARK: - PaymentHistoryViewModel
 

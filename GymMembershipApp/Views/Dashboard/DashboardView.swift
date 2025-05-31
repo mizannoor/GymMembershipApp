@@ -10,69 +10,173 @@ import SwiftUI
 // MARK: - DashboardView
 struct DashboardView: View {
     @EnvironmentObject var authVM: AuthViewModel
+    @StateObject private var vm = DashboardViewModel()
 
-    @State private var statusText: String = ""
-    @State private var qrBase64: String?      // <-- Hold the raw Base64 QR string
-    @State private var isLoading = true
-    @State private var errorMessage: String?
+    @State private var showCancelAlert       = false
+    @State private var cancelErrorMessage: String?
+
+    // ───── NEW: Toast state ───────────────────────────────────────────
+    @State private var showPaymentToast       = false
+    @State private var toastOpacity: Double   = 0
 
     var body: some View {
-        NavigationView {
-            VStack(spacing: 24) {
-                // We use qrBase64 here instead of 'dash'
-                DashboardStatusView(
-                    statusText: statusText,
-                    base64QRCode: qrBase64
-                )
+        NavigationStack {
+            ZStack {
+                // ─────────────────────────────────────────────────────────────
+                // Main VStack content
+                VStack(spacing: 24) {
+                    // 1) Status + QR + Start/End Dates
+                    DashboardStatusWithDatesView(
+                        statusText:    vm.statusText,
+                        base64QRCode:  vm.qrBase64,
+                        startDateText: vm.startDateText,
+                        endDateText:   vm.endDateText
+                    )
 
-                Spacer()
+                    Spacer()
 
-                Button("Sign Out") {
-                    authVM.signOut()
+                    // 2) Buttons at Bottom
+                    VStack(spacing: 12) {
+                        // “Subscribe Membership” always visible
+                        NavigationLink {
+                            PlanSelectionView()
+                        } label: {
+                            Text("Subscribe Membership")
+                                .frame(maxWidth: .infinity)
+                        }
+                        .buttonStyle(PrimaryActionButtonStyle())
+
+                        // Show “Cancel Membership” only if status == “Active”
+                        if vm.statusText.lowercased() == "active" {
+                            Button("Cancel Membership") {
+                                showCancelAlert = true
+                            }
+                            .foregroundColor(.red)
+                            .alert(isPresented: $showCancelAlert) {
+                                Alert(
+                                    title: Text("Cancel Membership"),
+                                    message: Text("Are you sure you want to cancel your active membership?"),
+                                    primaryButton: .destructive(Text("Yes, Cancel")) {
+                                        Task {
+                                            do {
+                                                try await APIClient.shared.cancelSubscription()
+                                                vm.loadDashboard()
+                                            } catch {
+                                                cancelErrorMessage = error.localizedDescription
+                                            }
+                                        }
+                                    },
+                                    secondaryButton: .cancel()
+                                )
+                            }
+                        }
+                    }
                 }
-                .foregroundColor(.red)
+                .loadingErrorEmpty(
+                    isLoading:    vm.isLoading,
+                    errorMessage: vm.errorMessage ?? cancelErrorMessage,
+                    isEmpty:      false,
+                    emptyMessage: ""
+                )
+                .padding()
+                .navigationTitle("Dashboard")
+                .onAppear(perform: vm.loadDashboard)
+                // ─────────────────────────────────────────────────────────────
+
+                // ───── NEW: Toast overlay ───────────────────────────────────
+                if showPaymentToast {
+                    // Position the toast near the top
+                    VStack {
+                        ToastView(message: "Payment completed successfully")
+                            .opacity(toastOpacity)
+                            .onAppear {
+                                // Fade in
+                                withAnimation(.easeIn(duration: 0.3)) {
+                                    toastOpacity = 1
+                                }
+                                // After 2 seconds, fade out and hide
+                                DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
+                                    withAnimation(.easeOut(duration: 0.5)) {
+                                        toastOpacity = 0
+                                    }
+                                    // Finally, remove the toast entirely
+                                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                                        showPaymentToast = false
+                                    }
+                                }
+                            }
+                        Spacer()
+                    }
+                    .transition(.move(edge: .top).combined(with: .opacity))
+                }
             }
-            // Wrap in loading/error container:
-            .loadingErrorEmpty(
-                isLoading: isLoading,
-                errorMessage: errorMessage,
-                isEmpty: false,       // We never show an "empty" placeholder here
-                emptyMessage: ""
-            )
-            .padding()
-            .navigationTitle("Dashboard")
-            .onAppear(perform: loadDashboard)
-        }
-    }
-
-    // MARK: - Load Dashboard Data
-    func loadDashboard() {
-        Task {
-            isLoading = true
-            errorMessage = nil
-
-            do {
-                let dash = try await APIClient.shared.fetchDashboard()
-                // 1. Update status text
-                statusText = (dash.status ?? "Unknown").capitalized
-
-                // 2. Store raw Base64 into state
-                qrBase64 = dash.qr
-
-            } catch {
-                errorMessage = "Failed to load: \(error.localizedDescription)"
+            // ─────────────────────────────────────────────────────────────
+            // Listen for .paymentDidComplete notification
+            .onReceive(NotificationCenter.default.publisher(for: .paymentDidComplete)) { _ in
+                // Show the toast when payment completes
+                showPaymentToast = true
+                toastOpacity     = 0
             }
-
-            isLoading = false
         }
     }
 }
 
+// MARK: - DashboardStatusWithDatesView
+struct DashboardStatusWithDatesView: View {
+    let statusText:   String
+    let base64QRCode: String?
+    let startDateText:String
+    let endDateText:  String
+
+    var body: some View {
+        VStack(spacing: 16) {
+            Text("Membership Status:")
+                .font(.headline)
+
+            Text(statusText)
+                .font(.title2)
+                .bold()
+
+            if let qrString = base64QRCode,
+               let data     = Data(base64Encoded: qrString),
+               let uiImage  = UIImage(data: data)
+            {
+                Image(uiImage: uiImage)
+                    .resizable()
+                    .scaledToFit()
+                    .frame(width: 200, height: 200)
+            }
+
+            HStack(spacing: 32) {
+                VStack(alignment: .leading) {
+                    Text("Start Date:")
+                        .font(.subheadline).bold()
+                    Text(startDateText)
+                        .font(.subheadline)
+                }
+                VStack(alignment: .leading) {
+                    Text("End Date:")
+                        .font(.subheadline).bold()
+                    Text(endDateText)
+                        .font(.subheadline)
+                }
+            }
+            .padding(.top, 12)
+        }
+        .padding()
+        .background(
+            RoundedRectangle(cornerRadius: 12)
+                .fill(Color(UIColor.secondarySystemBackground))
+        )
+    }
+}
+
+
 // MARK: - Preview
 struct DashboardView_Previews: PreviewProvider {
     static var previews: some View {
-        let vm = AuthViewModel()
+        let authVM = AuthViewModel()
         DashboardView()
-            .environmentObject(vm)
+            .environmentObject(authVM)
     }
 }

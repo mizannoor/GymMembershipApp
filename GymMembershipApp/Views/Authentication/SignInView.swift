@@ -15,13 +15,29 @@ struct SignInView: View {
     @State private var errorMessage: String?
 
     var body: some View {
-        VStack {
+        VStack(spacing: 24)  {
             Spacer()
+            Text("Welcome to GymMembershipApp!")
+                                .font(.largeTitle)
+                                .fontWeight(.bold)
+                                .multilineTextAlignment(.center)
+                                .padding(.top, 40)
+            Image("AppLogo")
+                .resizable()
+                .scaledToFit()
+                // Adjust width/height as needed.
+                .frame(width: 200, height: 200)
 
+            Text("By signing up, you agree to the Terms of Service and Privacy Policy.")
+                                .font(.footnote)
+                                .multilineTextAlignment(.center)
+                                .foregroundColor(.secondary)
+                                .padding(.horizontal, 40)
+            
             GoogleLoginButton {
                 signIn()
             }
-            .disabled(isSigningIn)
+            .disabled(isSigningIn).padding(.horizontal, 24)
 
             if let msg = errorMessage {
                 Text(msg)
@@ -32,7 +48,8 @@ struct SignInView: View {
 
             Spacer()
         }
-        .padding()
+        .padding(.bottom, 40)
+                    .navigationTitle("Sign In")
     }
 
     private func signIn() {
