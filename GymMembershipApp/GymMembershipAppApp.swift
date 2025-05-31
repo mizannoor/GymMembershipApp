@@ -22,7 +22,7 @@ struct GymMembershipApp: App {
     var body: some Scene {
         WindowGroup {
             ContentView()
-                .environmentObject(authVM)
+                .environmentObject(authVM).preferredColorScheme(.dark) // Force dark mode if desired
         }
     }
 }

@@ -7,11 +7,15 @@
 
 import Foundation
 
-struct AuthResponse: Codable {
-    let access_token: String
-    let token_type: String
-    let expires_in: Int
+/// A simple enum to represent possible API errors
+enum APIError: Error {
+    case invalidURL
+    case invalidResponse
+    case decodingError
+    case serverError(String)
+    case notAuthenticated
 }
+
 
 final class APIClient {
     static let shared = APIClient()
