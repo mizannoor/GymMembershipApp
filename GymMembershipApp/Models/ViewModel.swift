@@ -123,26 +123,59 @@ final class AuthViewModel: ObservableObject {
     }
 }
 
-
 // MARK: - PlanViewModel
 
-/// Fetches and subscribes to membership plans.
+/// Fetches and subscribes to membership plans, now with a `searchText`
+/// property that automatically re-fetches from the server as the user types.
 @MainActor
 class PlanViewModel: ObservableObject, Loadable {
+    // 1) The full array of plans returned from the backend
     @Published var plans: [Plan] = []
+    
+    // 2) Tracks loading/error state (from Loadable protocol)
     @Published var isLoading = false
     @Published var errorMessage: String?
-
-    /// Loads available plans from the server.
+    
+    // 3) New: the text the user types into the search bar
+    @Published var searchText: String = ""
+    
+    // 4) A place to store any Combine subscriptions
+    private var cancellables = Set<AnyCancellable>()
+    
+    init() {
+        // As soon as `searchText` changes, wait 50 ms, ignore duplicates,
+        // then call `loadPlans(filter:)` with the latest value.
+        $searchText
+            .debounce(for: .milliseconds(500), scheduler: RunLoop.main)
+            .removeDuplicates()
+            .sink { [weak self] latestText in
+                self?.loadPlans(filter: latestText)
+            }
+            .store(in: &cancellables)
+    }
+    
+    /// Loads all plans (no filter).
     func loadPlans() {
+        loadPlans(filter: nil)
+    }
+    
+    /// Loads plans from the server, optionally filtering by name.
+    /// - Parameter filter: If non-nil and non-empty, hits `/api/plans?name=<filter>`.
+    func loadPlans(filter: String?) {
+        let trimmed = filter?
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        
+        // If `trimmed` is an empty string or nil, send nil to fetch all plans.
+        let query = (trimmed?.isEmpty == false) ? trimmed : nil
+        
         perform({
-            try await APIClient.shared.fetchPlans()
+            try await APIClient.shared.fetchPlans(filter: query)
         }) { fetchedPlans in
             self.plans = fetchedPlans
         }
     }
-
-    /// Subscribes to the given plan.
+    
+    /// Subscribes to the given plan (unchanged from before).
     func subscribe(to plan: Plan) {
         perform({
             try await APIClient.shared.subscribe(to: plan.id)

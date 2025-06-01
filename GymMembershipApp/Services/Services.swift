@@ -219,13 +219,35 @@ final class APIClient {
             throw error
         }
     }
-    
-    /// 3) Fetch all membership plans.
-    func fetchPlans() async throws -> [Plan] {
-        let request = try makeRequest(path: "plans")
+   
+    /// 3) Fetch all membership plans, optionally filtered by name.
+    /// Fetch all membership plans, optionally filtered by name.
+    /// This version uses `makeRequest(path:)` (which reads the base URL from Info.plist)
+    /// and then injects the `name` query without hardcoding the base URL.
+    func fetchPlans(filter: String? = nil) async throws -> [Plan] {
+        // 1) Start by asking makeRequest for the “plans” endpoint (no query string yet).
+        //    makeRequest(path:) already combines your Info.plist base URL with “/plans”.
+        var request = try makeRequest(path: "plans")
+        
+        // 2) If a non-empty filter was passed, append it as ?name=<filter>.
+        if let raw = filter?.trimmingCharacters(in: .whitespacesAndNewlines),
+           !raw.isEmpty,
+           let originalURL = request.url,
+           var components = URLComponents(url: originalURL, resolvingAgainstBaseURL: false)
+        {
+            // Add the “name” query item. URLComponents will handle percent-encoding the value.
+            components.queryItems = [
+                URLQueryItem(name: "name", value: raw)
+            ]
+            // Assign the updated URL (with ?name=…) back onto the request.
+            request.url = components.url
+        }
+        
+        // 3) Perform the network request and decode { "plans": [Plan,…] }.
         let wrapper: [String: [Plan]] = try await sendRequest(request)
         return wrapper["plans"] ?? []
     }
+
     
     /// 4) Subscribe to a plan (no return value).
     func subscribe(to planId: Int) async throws {
