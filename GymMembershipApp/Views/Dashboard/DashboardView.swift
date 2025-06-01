@@ -15,7 +15,7 @@ struct DashboardView: View {
     @State private var showCancelAlert       = false
     @State private var cancelErrorMessage: String?
 
-    // ───── NEW: Toast state ───────────────────────────────────────────
+    // ───── Toast state ───────────────────────────────────────────
     @State private var showPaymentToast       = false
     @State private var toastOpacity: Double   = 0
 
@@ -80,26 +80,32 @@ struct DashboardView: View {
                 )
                 .padding()
                 .navigationTitle("Dashboard")
+                .toolbar {
+                    // Refresh button
+                    ToolbarItem(placement: .navigationBarTrailing) {
+                        Button {
+                            vm.loadDashboard()
+                        } label: {
+                            Image(systemName: "arrow.clockwise")
+                        }
+                    }
+                }
                 .onAppear(perform: vm.loadDashboard)
                 // ─────────────────────────────────────────────────────────────
 
-                // ───── NEW: Toast overlay ───────────────────────────────────
+                // ───── Toast overlay ───────────────────────────────────
                 if showPaymentToast {
-                    // Position the toast near the top
                     VStack {
                         ToastView(message: "Payment completed successfully")
                             .opacity(toastOpacity)
                             .onAppear {
-                                // Fade in
                                 withAnimation(.easeIn(duration: 0.3)) {
                                     toastOpacity = 1
                                 }
-                                // After 2 seconds, fade out and hide
                                 DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
                                     withAnimation(.easeOut(duration: 0.5)) {
                                         toastOpacity = 0
                                     }
-                                    // Finally, remove the toast entirely
                                     DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
                                         showPaymentToast = false
                                     }
@@ -113,9 +119,18 @@ struct DashboardView: View {
             // ─────────────────────────────────────────────────────────────
             // Listen for .paymentDidComplete notification
             .onReceive(NotificationCenter.default.publisher(for: .paymentDidComplete)) { _ in
-                // Show the toast when payment completes
                 showPaymentToast = true
                 toastOpacity     = 0
+            }
+
+            // Force logout whenever vm.errorMessage contains "Unauthenticated"
+            .onChange(of: vm.errorMessage) { newError in
+                if let msg = newError, msg.contains("Unauthenticated") {
+                    authVM.signOut()
+                }
+            }
+            .onReceive(NotificationCenter.default.publisher(for: .unauthenticated)) { _ in
+                authVM.signOut()
             }
         }
     }
@@ -123,10 +138,10 @@ struct DashboardView: View {
 
 // MARK: - DashboardStatusWithDatesView
 struct DashboardStatusWithDatesView: View {
-    let statusText:   String
-    let base64QRCode: String?
-    let startDateText:String
-    let endDateText:  String
+    let statusText:    String
+    let base64QRCode:  String?
+    let startDateText: String
+    let endDateText:   String
 
     var body: some View {
         VStack(spacing: 16) {
@@ -170,7 +185,6 @@ struct DashboardStatusWithDatesView: View {
         )
     }
 }
-
 
 // MARK: - Preview
 struct DashboardView_Previews: PreviewProvider {

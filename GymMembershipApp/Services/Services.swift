@@ -203,8 +203,21 @@ final class APIClient {
     
     /// 2) Fetch current user’s dashboard data (status, QR, start/end dates).
     func fetchDashboard() async throws -> DashboardResponse {
-        let request = try makeRequest(path: "dashboard")
-        return try await sendRequest(request)
+        do {
+            let request = try makeRequest(path: "dashboard")
+            return try await sendRequest(request)
+        } catch {
+            // If the server returned {"message":"Unauthenticated."}, force a logout:
+            let msg = (error as? APIError)?.localizedDescription ?? error.localizedDescription
+            if msg.contains("Unauthenticated") {
+                // Post to notify the app that the JWT is invalid
+                DispatchQueue.main.async {
+                    NotificationCenter.default.post(name: .unauthenticated, object: nil)
+                }
+            }
+            // Re‐throw so that view models can still capture the error if needed
+            throw error
+        }
     }
     
     /// 3) Fetch all membership plans.
@@ -287,5 +300,19 @@ final class APIClient {
         // If backend requires a body, add it here; otherwise, this stub assumes no JSON body:
         let request = try makeRequest(path: "subscription/cancel", method: "POST")
         let _: EmptyResponse = try await sendRequest(request)
+    }
+    
+    /// 11) Delete the authenticated user (and all related data).
+    func deleteAccount() async throws {
+        let request = try makeRequest(path: "user", method: "DELETE")
+        // We expect no payload on success, so decode into EmptyResponse
+        let _: EmptyResponse = try await sendRequest(request)
+    }
+    
+    /// 12) Fetch the authenticated user’s profile (id, name, email).
+    func fetchProfile() async throws -> User {
+        // Builds GET /api/user with Authorization header
+        let request = try makeRequest(path: "user")
+        return try await sendRequest(request)
     }
 }

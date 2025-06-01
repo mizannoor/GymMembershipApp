@@ -143,4 +143,6 @@ private class WebAuthSessionDelegate: NSObject, ASWebAuthenticationPresentationC
 
 extension Notification.Name {
     static let paymentDidComplete = Notification.Name("paymentDidComplete")
+    static let unauthenticated = Notification.Name("unauthenticated")
+
 }

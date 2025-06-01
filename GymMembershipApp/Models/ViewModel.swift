@@ -45,6 +45,39 @@ extension Loadable {
     }
 }
 
+// MARK: - ProfileViewModel
+// ProfileViewModel.swift
+@MainActor
+class ProfileViewModel: ObservableObject, Loadable {
+    // MARK: - Published Properties
+
+    @Published var user: User?
+    @Published var isLoading: Bool = false
+    @Published var errorMessage: String?
+
+    // MARK: - Load Profile
+
+    /// Fetches the authenticated user’s basic info (id, name, email).
+    func loadProfile() {
+        perform({
+            try await APIClient.shared.fetchProfile()
+        }) { fetchedUser in
+            self.user = fetchedUser
+        }
+    }
+
+    // MARK: - Delete Account
+
+    /// Sends a DELETE request to remove the current user (and related data).
+    /// - Parameter onSuccess: Called if deletion succeeds; typically used to sign out.
+    func deleteAccount(onSuccess: @escaping () -> Void) {
+        perform({
+            try await APIClient.shared.deleteAccount()
+        }) { _ in
+            onSuccess()
+        }
+    }
+}
 
 // MARK: - AuthViewModel
 

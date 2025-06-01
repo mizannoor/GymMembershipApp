@@ -55,6 +55,8 @@ struct ContentView: View {
                         PlanSelectionView()
                     case .payments:
                         PaymentHistoryView()
+                    case .account:                                       // <-- new
+                        ProfileView()
                     case .signOut:
                         // Perform sign out and return to dashboard
                         Color.clear.onAppear {
@@ -67,7 +69,7 @@ struct ContentView: View {
             .navigationBarItems(leading: Button(action: {
                 withAnimation { isMenuOpen.toggle() }
             }) {
-                Image(systemName: "line.horizontal.3")
+                Image(systemName: "line.horizontal.3").font(.title)
                     .imageScale(.large)
             })
         }

@@ -4,9 +4,6 @@
 //
 //  Created by imac4 on 25/05/2025.
 //
-
-// SideMenu.swift
-
 import SwiftUI
 
 struct SideMenu: View {

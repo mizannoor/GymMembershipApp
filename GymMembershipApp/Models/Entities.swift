@@ -7,6 +7,14 @@
 
 import Foundation
 
+// MARK: - User
+/// Represents the authenticated user’s basic info.
+struct User: Codable, Identifiable {
+    let id: Int
+    let name: String
+    let email: String
+}
+
 // MARK: - Plan
 struct Plan: Codable, Identifiable {
     let id: Int
