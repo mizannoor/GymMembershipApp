@@ -1,13 +1,12 @@
 # UTeM : MMSD 5223 - Native Mobile Development II
 
 
-```markdown
+
 # 📱 GymMembershipApp (iOS - SwiftUI)
 
 This is the **iOS mobile frontend** for the Gym Membership System. Built using SwiftUI and MVVM architecture, the app integrates with a Laravel backend to allow users to register via Google, subscribe to gym plans, view membership status, and scan QR codes. Square is used for payment processing.
 
 ---
-
 ## ✅ Features
 
 - 🔐 **Gmail Sign-In** (OAuth 2.0)
@@ -20,11 +19,10 @@ This is the **iOS mobile frontend** for the Gym Membership System. Built using S
 - 🔍 **Search functionality** for plans or user info
 - 🌙 **Dark Mode** UI with SwiftUI theming
 
----
+
 
 ## 📁 Project Structure
 
-```
 ```bash
 GymMembershipApp/
 ├── Models/
@@ -49,9 +47,8 @@ GymMembershipApp/
 ├── GymMembershipAppApp.swift
 └── Info.plist
 ```
-````
 
----
+
 
 ## 🧱 Architecture
 
@@ -61,6 +58,42 @@ The app follows **MVVM (Model-View-ViewModel)** with:
 - **Networking** layer using `URLSession` for API calls
 - **Secure token storage** via `KeychainWrapper` or `UserDefaults`
 - Reusable `View` components for QR and payment status
+
+---
+
+```mermaid
+---
+config:
+  layout: fixed
+---
+flowchart TD
+ subgraph Frontend["Frontend"]
+        A["User (iOS App - SwiftUI)"]
+  end
+ subgraph Backend["Backend"]
+        C["Laravel Backend API"]
+        D["MySQL Database"]
+        F["QR Generator Library"]
+  end
+ subgraph subGraph2["External Services"]
+        B["Google OAuth 2.0"]
+        E["Square API"]
+  end
+    A -- Login via Google --> B
+    B -- Returns ID Token --> C
+    C -- Issues JWT Token --> A
+    A -- Uses JWT for Auth --> C
+    A -- Fetch Membership Plans --> C
+    A -- Subscribe to Plan --> C
+    C -- Store/Query Data --> D
+    C -- Generate Checkout Link --> E
+    A -- Redirects to Payment URL --> E
+    E -- Sends Payment Callback --> C
+    C -- Updates Membership & Payment Status --> D
+    C -- Generates QR Code --> F
+    C -- Sends Base64 QR to App --> A
+
+```
 
 ---
 
@@ -163,4 +196,4 @@ git clone https://github.com/mizannoor/GymMembershipApp.git
 
 This project is open-source and available under the [MIT license](LICENSE).
 
-```
+
