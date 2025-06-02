@@ -192,6 +192,14 @@ git clone https://github.com/mizannoor/GymMembershipApp.git
 
 ---
 
+## 📱 Backend
+
+Backend is built using **Laravel** and connects via REST API. See [gym-backend Laravel Repository](https://github.com/mizannoor/gym-backend).
+
+---
+
+---
+
 ## 🪪 License
 
 This project is open-source and available under the [MIT license](LICENSE).
