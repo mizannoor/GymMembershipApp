@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import FirebaseAnalytics
 
 // MARK: - DashboardView
 struct DashboardView: View {
@@ -60,6 +61,8 @@ struct DashboardView: View {
                                         Task {
                                             do {
                                                 try await APIClient.shared.cancelSubscription()
+                                                Analytics.logEvent("membership_cancelled", parameters: nil)
+
                                                 vm.loadDashboard()
                                             } catch {
                                                 cancelErrorMessage = error.localizedDescription
@@ -90,7 +93,14 @@ struct DashboardView: View {
                         }
                     }
                 }
-                .onAppear(perform: vm.loadDashboard)
+                .onAppear{
+                    vm.loadDashboard()
+                    Analytics.logEvent(AnalyticsEventScreenView, parameters: [
+                        AnalyticsParameterScreenName: "DashboardView",
+                        AnalyticsParameterScreenClass: "DashboardView"
+                    ])
+
+                }
                 // ─────────────────────────────────────────────────────────────
 
                 // ───── Toast overlay ───────────────────────────────────

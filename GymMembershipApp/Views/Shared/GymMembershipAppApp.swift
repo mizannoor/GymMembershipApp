@@ -8,6 +8,7 @@
 import GoogleSignIn
 import SwiftUI
 //import SquareInAppPaymentsSDK
+import FirebaseCore
 
 @main
 struct GymMembershipApp: App {
@@ -28,17 +29,29 @@ struct GymMembershipApp: App {
 }
 
 class AppDelegate: NSObject, UIApplicationDelegate {
-    func application(_ app: UIApplication, open url: URL, options: [UIApplication.OpenURLOptionsKey:Any] = [:]) -> Bool {
+    func application(
+        _ application: UIApplication,
+        didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey : Any]? = nil
+    ) -> Bool {
+        FirebaseApp.configure() // 🔥 Initialize Firebase here
+        return true
+    }
+
+    func application(
+        _ app: UIApplication,
+        open url: URL,
+        options: [UIApplication.OpenURLOptionsKey:Any] = [:]
+    ) -> Bool {
         guard url.scheme == Constants.callbackURLScheme,
               url.host   == "payment-complete"
         else {
             return false
         }
 
-        // Notify the rest of your app that payment just finished
+        // Notify the app that payment just finished
         NotificationCenter.default.post(name: .paymentDidComplete, object: nil)
 
-        // Also let GoogleSignIn handle its callback if needed
+        // Let GoogleSignIn also handle callback
         return GIDSignIn.sharedInstance.handle(url)
     }
 }

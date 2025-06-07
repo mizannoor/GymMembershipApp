@@ -7,6 +7,7 @@
 
 import SwiftUI
 import AuthenticationServices
+import FirebaseAnalytics
 
 struct PaymentView: View {
     let membershipId: Int
@@ -61,6 +62,18 @@ struct PaymentView: View {
             DispatchQueue.main.asyncAfter(deadline: .now() + 10) {
                 if !paymentSuccess {
                     showManualOption = true
+                }
+            }
+        }
+        .onDisappear {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 10) {
+                if !paymentSuccess {
+                    
+                    Analytics.logEvent("checkout_abandoned", parameters: [
+                        "membership_id": membershipId,
+                        "amount": amount
+                    ])
+
                 }
             }
         }
@@ -122,6 +135,26 @@ struct PaymentView: View {
         do {
             let status = try await APIClient.shared.checkPaymentStatus(paymentId: id)
             if status == "success" {
+                
+                Analytics.logEvent("payment_success", parameters: [
+                    "membership_id": membershipId,
+                    "amount": amount
+                ])
+                
+                Analytics.logEvent(AnalyticsEventPurchase, parameters: [
+                    AnalyticsParameterTransactionID: "\(membershipId)",
+                    AnalyticsParameterValue: amount,
+                    AnalyticsParameterCurrency: "USD",
+                    AnalyticsParameterItems: [
+                        [
+                            AnalyticsParameterItemName: "Gym Plan",
+                            AnalyticsParameterItemID: "plan_\(membershipId)",
+                            AnalyticsParameterPrice: amount,
+                            AnalyticsParameterQuantity: 1
+                        ]
+                    ]
+                ])
+
                 NotificationCenter.default.post(name: .paymentDidComplete, object: nil)
             } else {
                 errorMessage = "Payment not confirmed yet."

@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import FirebaseAnalytics
 
 struct ProfileView: View {
     @EnvironmentObject private var authVM: AuthViewModel
@@ -44,6 +45,12 @@ struct ProfileView: View {
             }
             .onAppear {
                 vm.loadProfile()
+                
+                Analytics.logEvent(AnalyticsEventScreenView, parameters: [
+                    AnalyticsParameterScreenName: "ProfileView",
+                    AnalyticsParameterScreenClass: "ProfileView"
+                ])
+
             }
             .alert("Delete Account", isPresented: $showingAlert) {
                 Button("Cancel", role: .cancel) { }

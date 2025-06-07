@@ -10,7 +10,7 @@
 	<key>GIDClientID</key>
 	<string>187292738333-ntkvudt5kssf3jaubbmkqg0rl2mfoef3.apps.googleusercontent.com</string>
 	<key>API_BASE_URL</key>
-	<string>http://192.168.19.219:8000/api</string>
+	<string>http://192.168.144.219:8000/api</string>
 	<key>CFBundleURLTypes</key>
 	<array>
 		<dict>
@@ -18,7 +18,7 @@
 			<string>com.googleusercontent.apps.187292738333-ntkvudt5kssf3jaubbmkqg0rl2mfoef3</string>
 			<key>CFBundleURLSchemes</key>
 			<array>
-                <string>gymmembership</string>
+				<string>gymmembership</string>
 			</array>
 		</dict>
 	</array>

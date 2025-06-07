@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import FirebaseAnalytics
 
 struct PlanSelectionView: View {
     @Environment(\.presentationMode) private var presentationMode
@@ -20,6 +21,11 @@ struct PlanSelectionView: View {
                 .navigationTitle("Choose a Plan")
                 .toolbar { refreshToolbar }
                 .onAppear {
+                    Analytics.logEvent(AnalyticsEventScreenView, parameters: [
+                        AnalyticsParameterScreenName: "PlanSelectionView",
+                        AnalyticsParameterScreenClass: "PlanSelectionView"
+                    ])
+
                     // Only load plans if we haven't already fetched them
                     if vm.plans.isEmpty {
                         if(vm.searchText.isEmpty) { vm.loadPlans() }
@@ -92,6 +98,7 @@ struct PlanSelectionView: View {
             if let id = membershipId, let plan = selectedPlan {
                 // Pass the plan.price if your PaymentView needs it
                 PaymentView(membershipId: id, amount: plan.price)
+                
             } else {
                 Text("Something went wrong.")
             }
@@ -107,6 +114,11 @@ struct PlanSelectionView: View {
         vm.isLoading = true
         defer { vm.isLoading = false }
         vm.errorMessage = nil
+        
+        Analytics.logEvent("subscription_initiated", parameters: [
+            "plan_id": plan.id,
+            "plan_name": plan.name
+        ])
         
         do {
             // OPTION 1: If your /subscribe returns JSON { "membership": { … } }

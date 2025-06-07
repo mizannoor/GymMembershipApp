@@ -9,6 +9,7 @@ import Foundation
 import Combine
 import SwiftUI
 import GoogleSignIn
+import FirebaseAnalytics
 
 // MARK: - Loadable Protocol
 
@@ -74,7 +75,13 @@ class ProfileViewModel: ObservableObject, Loadable {
         perform({
             try await APIClient.shared.deleteAccount()
         }) { _ in
+            
+            Analytics.logEvent("account_deleted", parameters: [
+                "user_id": self.user?.id ?? 0
+            ])
+            
             onSuccess()
+
         }
     }
 }
@@ -111,9 +118,17 @@ final class AuthViewModel: ObservableObject {
             account: Constants.keychainAccount
         )
         isAuthenticated = true
+        
+        Analytics.logEvent("login_success", parameters: [
+            "method": "google"
+        ])
     }
 
     func signOut() {
+        Analytics.logEvent("logout", parameters: [
+            "method": "manual"
+        ])
+
         KeychainHelper.standard.save(
             Data(),
             service: Constants.keychainService,
@@ -172,6 +187,11 @@ class PlanViewModel: ObservableObject, Loadable {
             try await APIClient.shared.fetchPlans(filter: query)
         }) { fetchedPlans in
             self.plans = fetchedPlans
+            
+            Analytics.logEvent("plan_search", parameters: [
+                "query": self.searchText
+            ])
+
         }
     }
     
@@ -181,6 +201,13 @@ class PlanViewModel: ObservableObject, Loadable {
             try await APIClient.shared.subscribe(to: plan.id)
         }) { _ in
             // Post-subscription logic (e.g. notifications) can go here
+            Analytics.logEvent("plan_subscribed", parameters: [
+                "plan_id": plan.id,
+                "plan_name": plan.name,
+                "duration_months": plan.duration_months,
+                "price": plan.price
+            ])
+
         }
     }
 }
@@ -233,6 +260,11 @@ class DashboardViewModel: ObservableObject, Loadable {
                let data = Data(base64Encoded: base64String),
                let uiImage = UIImage(data: data) {
                 self.qrImage = Image(uiImage: uiImage)
+                
+                Analytics.logEvent("qr_displayed", parameters: [
+                    "membership_status": self.statusText
+                ])
+
             } else {
                 self.qrImage = nil
             }
