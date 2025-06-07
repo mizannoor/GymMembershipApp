@@ -9,6 +9,7 @@ import GoogleSignIn
 import SwiftUI
 //import SquareInAppPaymentsSDK
 import FirebaseCore
+import FirebaseAnalytics
 
 @main
 struct GymMembershipApp: App {
@@ -34,6 +35,7 @@ class AppDelegate: NSObject, UIApplicationDelegate {
         didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey : Any]? = nil
     ) -> Bool {
         FirebaseApp.configure() // 🔥 Initialize Firebase here
+        Analytics.setAnalyticsCollectionEnabled(true)
         return true
     }
 
