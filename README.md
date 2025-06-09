@@ -15,7 +15,6 @@ This is the **iOS mobile frontend** for the Gym Membership System. Built using S
 - 📆 Subscribe to **1, 3, 6, 12-month packages**
 - 📦 Display **QR Code** linked to active membership
 - 💳 Handle **Square Payment Integration**
-- 📧 Receive **email notifications** after payment
 - 🔍 **Search functionality** for plans or user info
 - 🌙 **Dark Mode** UI with SwiftUI theming
 
