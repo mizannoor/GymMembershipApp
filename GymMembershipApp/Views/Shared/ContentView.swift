@@ -13,11 +13,23 @@ struct ContentView: View {
     @EnvironmentObject var authVM: AuthViewModel
     @State private var isMenuOpen = false
     @State private var selection: MenuOption = .dashboard
+    @State private var lastInteraction = Date()
+    @State private var sessionTimer: Timer? = nil
+    let sessionTimeout: TimeInterval = 300 // 5 minutes
 
     var body: some View {
         Group {
             if authVM.isAuthenticated {
                 authenticatedView
+                    .onAppear { startSessionTimer() }
+                    .onDisappear { stopSessionTimer() }
+                    .highPriorityGesture(
+                        DragGesture(minimumDistance: 0)
+                            .onChanged { _ in resetSessionTimer() }
+                    )
+                    .simultaneousGesture(
+                        TapGesture().onEnded { resetSessionTimer() }
+                    )
             } else {
                 // Show SignInView for unauthenticated users
                 SignInView()
@@ -73,6 +85,27 @@ struct ContentView: View {
                     .imageScale(.large)
             })
         }
+    }
+
+    // MARK: - Session Timeout Logic
+    private func startSessionTimer() {
+        stopSessionTimer()
+        sessionTimer = Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { _ in
+            let interval = Date().timeIntervalSince(lastInteraction)
+            print("Last interaction: \(lastInteraction), Interval: \(interval)")
+            if interval > sessionTimeout {
+                sessionTimer?.invalidate()
+                sessionTimer = nil
+                authVM.signOut()
+            }
+        }
+    }
+    private func stopSessionTimer() {
+        sessionTimer?.invalidate()
+        sessionTimer = nil
+    }
+    private func resetSessionTimer() {
+        lastInteraction = Date()
     }
 }
 
