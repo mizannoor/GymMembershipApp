@@ -101,7 +101,9 @@ struct ContentView: View {
         sessionTimer = nil
     }
     private func resetSessionTimer() {
-        lastInteraction = Date()
+        DispatchQueue.main.async {
+            lastInteraction = Date()
+        }
     }
 }
 
