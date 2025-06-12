@@ -86,6 +86,7 @@ struct ContentView: View {
     // MARK: - Session Timeout Logic
     private func startSessionTimer() {
         stopSessionTimer()
+        lastInteraction = Date() // Reset on login/session start
         sessionTimer = Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { _ in
             let interval = Date().timeIntervalSince(lastInteraction)
             print("Last interaction: \(lastInteraction), Interval: \(interval)")
