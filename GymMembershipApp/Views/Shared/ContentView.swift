@@ -119,15 +119,10 @@ struct ContentView_Previews: PreviewProvider {
 struct InteractionResetter: UIViewRepresentable {
     let resetSessionTimer: () -> Void
     func makeUIView(context: Context) -> UIView {
-        let view = UIView()
-        let tap = UITapGestureRecognizer(target: context.coordinator, action: #selector(Coordinator.handleInteraction))
-        tap.cancelsTouchesInView = false
-        let pan = UIPanGestureRecognizer(target: context.coordinator, action: #selector(Coordinator.handleInteraction))
-        pan.cancelsTouchesInView = false
-        view.addGestureRecognizer(tap)
-        view.addGestureRecognizer(pan)
-        view.isUserInteractionEnabled = true
-        view.backgroundColor = .clear
+        let view = TouchForwardingView()
+        view.onUserInteraction = {
+            resetSessionTimer()
+        }
         return view
     }
     func updateUIView(_ uiView: UIView, context: Context) {}
@@ -142,5 +137,14 @@ struct InteractionResetter: UIViewRepresentable {
         @objc func handleInteraction() {
             resetSessionTimer()
         }
+    }
+}
+
+// Replace UIView with this subclass to forward touches
+class TouchForwardingView: UIView {
+    var onUserInteraction: (() -> Void)?
+    override func hitTest(_ point: CGPoint, with event: UIEvent?) -> UIView? {
+        onUserInteraction?()
+        return super.hitTest(point, with: event)
     }
 }
