@@ -120,7 +120,9 @@ struct InteractionResetter: UIViewRepresentable {
     func makeUIView(context: Context) -> UIView {
         let view = UIView()
         let tap = UITapGestureRecognizer(target: context.coordinator, action: #selector(Coordinator.handleInteraction))
+        tap.cancelsTouchesInView = false
         let pan = UIPanGestureRecognizer(target: context.coordinator, action: #selector(Coordinator.handleInteraction))
+        pan.cancelsTouchesInView = false
         view.addGestureRecognizer(tap)
         view.addGestureRecognizer(pan)
         view.isUserInteractionEnabled = true
