@@ -29,6 +29,7 @@ struct ContentView: View {
                             .gesture(
                                 DragGesture(minimumDistance: 0)
                                     .onChanged { _ in resetSessionTimer() }
+                                    .onEnded { _ in resetSessionTimer() }
                             )
                             .simultaneousGesture(
                                 TapGesture().onEnded { resetSessionTimer() }
