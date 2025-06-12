@@ -188,9 +188,9 @@ final class APIClient {
             }
             
             // Debug: print raw JSON response
-            if let s = String(data: data, encoding: .utf8) {
-                print("👉 raw response: \(s)")
-            }
+            // if let s = String(data: data, encoding: .utf8) {
+            //     print("👉 raw response: \(s)")
+            // }
             
             do {
                 let auth = try self.jsonDecoder.decode(AuthResponse.self, from: data)

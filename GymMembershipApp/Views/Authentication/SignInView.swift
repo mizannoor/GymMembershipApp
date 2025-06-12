@@ -13,6 +13,7 @@ struct SignInView: View {
     @EnvironmentObject var authVM: AuthViewModel
     @State private var isSigningIn = false
     @State private var errorMessage: String?
+    @State private var showPrivacyPolicy = false
 
     var body: some View {
         VStack(spacing: 24)  {
@@ -29,10 +30,13 @@ struct SignInView: View {
                 .frame(width: 200, height: 200)
 
             Text("By signing up, you agree to the Terms of Service and Privacy Policy.")
-                                .font(.footnote)
-                                .multilineTextAlignment(.center)
-                                .foregroundColor(.secondary)
-                                .padding(.horizontal, 40)
+                .font(.footnote)
+                .multilineTextAlignment(.center)
+                .foregroundColor(.secondary)
+                .padding(.horizontal, 40)
+                .onTapGesture {
+                    showPrivacyPolicy = true
+                }
             
             GoogleLoginButton {
                 signIn()
@@ -50,6 +54,9 @@ struct SignInView: View {
         }
         .padding(.bottom, 40)
                     .navigationTitle("Sign In")
+                    .sheet(isPresented: $showPrivacyPolicy) {
+                        PrivacyPolicyView()
+                    }
     }
 
     private func signIn() {
