@@ -23,13 +23,16 @@ struct ContentView: View {
                 authenticatedView
                     .onAppear { startSessionTimer() }
                     .onDisappear { stopSessionTimer() }
-                    .contentShape(Rectangle())
-                    .gesture(
-                        DragGesture(minimumDistance: 0)
-                            .onChanged { _ in resetSessionTimer() }
-                    )
-                    .simultaneousGesture(
-                        TapGesture().onEnded { resetSessionTimer() }
+                    .background(
+                        Color.clear
+                            .contentShape(Rectangle())
+                            .gesture(
+                                DragGesture(minimumDistance: 0)
+                                    .onChanged { _ in resetSessionTimer() }
+                            )
+                            .simultaneousGesture(
+                                TapGesture().onEnded { resetSessionTimer() }
+                            )
                     )
             } else {
                 // Show SignInView for unauthenticated users
