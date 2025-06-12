@@ -38,10 +38,16 @@ struct SignInView: View {
                     showPrivacyPolicy = true
                 }
             
-            GoogleLoginButton {
-                signIn()
+            if isSigningIn {
+                ProgressView("Signing in…")
+                    .padding(.horizontal, 24)
+            } else {
+                GoogleLoginButton {
+                    signIn()
+                }
+                .disabled(isSigningIn)
+                .padding(.horizontal, 24)
             }
-            .disabled(isSigningIn).padding(.horizontal, 24)
 
             if let msg = errorMessage {
                 Text(msg)
