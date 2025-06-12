@@ -93,6 +93,7 @@ class ProfileViewModel: ObservableObject, Loadable {
 @MainActor
 final class AuthViewModel: ObservableObject {
     @Published var isAuthenticated: Bool = false
+    @Published var errorMessage: String? = nil
 
     init() {
         // Attempt silent restore
