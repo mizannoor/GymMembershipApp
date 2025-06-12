@@ -66,9 +66,9 @@ struct SignInView: View {
     }
 
     private func signIn() {
+        isSigningIn = true // Ensure spinner shows immediately
         // 1) Try silent restore if possible
         if GIDSignIn.sharedInstance.hasPreviousSignIn() {
-            isSigningIn = true
             GIDSignIn.sharedInstance.restorePreviousSignIn { user, error in
                 isSigningIn = false
                 if let user = user, error == nil {
@@ -89,13 +89,13 @@ struct SignInView: View {
         guard
             let scene = UIApplication.shared.connectedScenes
                 .first(where: { $0.activationState == .foregroundActive }) as? UIWindowScene,
-            let rootVC = scene.windows.first(where: \.isKeyWindow)?.rootViewController
+            let rootVC = scene.windows.first(where: \ .isKeyWindow)?.rootViewController
         else {
+            isSigningIn = false // Hide spinner on error
             errorMessage = "Unable to access root view controller"
             return
         }
 
-        isSigningIn = true
         GIDSignIn.sharedInstance.signIn(withPresenting: rootVC) { result, error in
             defer { isSigningIn = false }
 
