@@ -7,6 +7,7 @@
 
 import SwiftUI
 import FirebaseAnalytics
+import FirebaseCrashlytics
 
 // MARK: - DashboardView
 struct DashboardView: View {
@@ -62,9 +63,9 @@ struct DashboardView: View {
                                             do {
                                                 try await APIClient.shared.cancelSubscription()
                                                 Analytics.logEvent("membership_cancelled", parameters: nil)
-
                                                 vm.loadDashboard()
                                             } catch {
+                                                Crashlytics.crashlytics().record(error: error)
                                                 cancelErrorMessage = error.localizedDescription
                                             }
                                         }

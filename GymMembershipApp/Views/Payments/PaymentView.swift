@@ -8,6 +8,7 @@
 import SwiftUI
 import AuthenticationServices
 import FirebaseAnalytics
+import FirebaseCrashlytics
 
 struct PaymentView: View {
     let membershipId: Int
@@ -88,6 +89,7 @@ struct PaymentView: View {
             checkoutURL      = URL(string: resp.checkout_url)
             pendingPaymentId = resp.payment_id
         } catch {
+            Crashlytics.crashlytics().record(error: error)
             errorMessage = error.localizedDescription
         }
         isLoading = false

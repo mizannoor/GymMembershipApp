@@ -11,6 +11,7 @@
 
 import Foundation
 import Security
+import FirebaseCrashlytics
 
 // MARK: - KeychainHelper
 
@@ -20,45 +21,57 @@ final class KeychainHelper {
     private init() { }
 
     func save(_ data: Data, service: String, account: String) {
-        // Existing implementation…
-        let query: [String: Any] = [
-            kSecClass as String       : kSecClassGenericPassword,
-            kSecAttrService as String : service,
-            kSecAttrAccount as String : account
-        ]
-        SecItemDelete(query as CFDictionary)
+        do {
+            let query: [String: Any] = [
+                kSecClass as String       : kSecClassGenericPassword,
+                kSecAttrService as String : service,
+                kSecAttrAccount as String : account
+            ]
+            SecItemDelete(query as CFDictionary)
 
-        let addQuery: [String: Any] = [
-            kSecClass as String       : kSecClassGenericPassword,
-            kSecAttrService as String : service,
-            kSecAttrAccount as String : account,
-            kSecValueData as String   : data
-        ]
-        SecItemAdd(addQuery as CFDictionary, nil)
+            let addQuery: [String: Any] = [
+                kSecClass as String       : kSecClassGenericPassword,
+                kSecAttrService as String : service,
+                kSecAttrAccount as String : account,
+                kSecValueData as String   : data
+            ]
+            SecItemAdd(addQuery as CFDictionary, nil)
+        } catch {
+            Crashlytics.crashlytics().record(error: error)
+        }
     }
 
     func read(service: String, account: String) -> Data? {
-        let query: [String: Any] = [
-            kSecClass as String       : kSecClassGenericPassword,
-            kSecAttrService as String : service,
-            kSecAttrAccount as String : account,
-            kSecReturnData as String  : true,
-            kSecMatchLimit as String  : kSecMatchLimitOne
-        ]
+        do {
+            let query: [String: Any] = [
+                kSecClass as String       : kSecClassGenericPassword,
+                kSecAttrService as String : service,
+                kSecAttrAccount as String : account,
+                kSecReturnData as String  : true,
+                kSecMatchLimit as String  : kSecMatchLimitOne
+            ]
 
-        var item: CFTypeRef?
-        let status = SecItemCopyMatching(query as CFDictionary, &item)
-        guard status == errSecSuccess else { return nil }
-        return (item as? Data)
+            var item: CFTypeRef?
+            let status = SecItemCopyMatching(query as CFDictionary, &item)
+            guard status == errSecSuccess else { return nil }
+            return (item as? Data)
+        } catch {
+            Crashlytics.crashlytics().record(error: error)
+            return nil
+        }
     }
 
     func delete(service: String, account: String) {
-        let query: [String: Any] = [
-            kSecClass as String       : kSecClassGenericPassword,
-            kSecAttrService as String : service,
-            kSecAttrAccount as String : account
-        ]
-        SecItemDelete(query as CFDictionary)
+        do {
+            let query: [String: Any] = [
+                kSecClass as String       : kSecClassGenericPassword,
+                kSecAttrService as String : service,
+                kSecAttrAccount as String : account
+            ]
+            SecItemDelete(query as CFDictionary)
+        } catch {
+            Crashlytics.crashlytics().record(error: error)
+        }
     }
 }
 
@@ -99,59 +112,68 @@ final class APIClient {
         method: String = "GET",
         body: Data? = nil
     ) throws -> URLRequest {
-        let url = baseURL.appendingPathComponent(path)
-        var request = URLRequest(url: url)
-        request.httpMethod = method
-        
-        // Attach JSON headers
-        request.setValue(Constants.applicationJson, forHTTPHeaderField: Constants.acceptHeader)
-        request.setValue(Constants.applicationJson, forHTTPHeaderField: Constants.contentTypeHeader)
-        
-        // Attach Bearer token if available
-        if let data = KeychainHelper.standard.read(
-            service: Constants.keychainService,
-            account: Constants.keychainAccount
-        ), let token = String(data: data, encoding: .utf8), !token.isEmpty {
-            request.setValue(
-                "\(Constants.bearerTokenPrefix)\(token)",
-                forHTTPHeaderField: Constants.authorizationHeader
-            )
+        do {
+            let url = baseURL.appendingPathComponent(path)
+            var request = URLRequest(url: url)
+            request.httpMethod = method
+            
+            // Attach JSON headers
+            request.setValue(Constants.applicationJson, forHTTPHeaderField: Constants.acceptHeader)
+            request.setValue(Constants.applicationJson, forHTTPHeaderField: Constants.contentTypeHeader)
+            
+            // Attach Bearer token if available
+            if let data = KeychainHelper.standard.read(
+                service: Constants.keychainService,
+                account: Constants.keychainAccount
+            ), let token = String(data: data, encoding: .utf8), !token.isEmpty {
+                request.setValue(
+                    "\(Constants.bearerTokenPrefix)\(token)",
+                    forHTTPHeaderField: Constants.authorizationHeader
+                )
+            }
+            print("🔷 makeRequest:", method, url)
+            request.httpBody = body
+            return request
+        } catch {
+            Crashlytics.crashlytics().record(error: error)
+            throw error
         }
-        print("🔷 makeRequest:", method, url)
-        request.httpBody = body
-        return request
     }
     
     /// Sends a URLRequest, checks for HTTP 2xx status code, and decodes JSON into `T: Decodable`.
     private func sendRequest<T: Decodable>(
       _ request: URLRequest
     ) async throws -> T {
-        let (data, response) = try await URLSession.shared.data(for: request)
-        
-        // DEBUG: Print HTTPURLResponse or fallback
-          if let httpResp = response as? HTTPURLResponse {
-            print("🔷 HTTP status code:", httpResp.statusCode)
-          } else {
-            print("🔷 Response was not HTTPURLResponse:", response)
-          }
-
-          // DEBUG: Print raw response body
-          if let text = String(data: data, encoding: .utf8) {
-            print("🔸 Raw response body:", text)
-          }
-        
-        guard let httpResp = response as? HTTPURLResponse else {
-            throw APIError.invalidResponse
-        }
-        guard (200...299).contains(httpResp.statusCode) else {
-            let bodyString = String(data: data, encoding: .utf8) ?? "No body"
-            throw APIError.serverError("Status \(httpResp.statusCode): \(bodyString)")
-        }
-        
         do {
-            return try jsonDecoder.decode(T.self, from: data)
+            let (data, response) = try await URLSession.shared.data(for: request)
+            
+            // DEBUG: Print HTTPURLResponse or fallback
+              if let httpResp = response as? HTTPURLResponse {
+                print("🔷 HTTP status code:", httpResp.statusCode)
+              } else {
+                print("🔷 Response was not HTTPURLResponse:", response)
+              }
+
+              // DEBUG: Print raw response body
+              if let text = String(data: data, encoding: .utf8) {
+                print("🔸 Raw response body:", text)
+              }
+            
+            guard let httpResp = response as? HTTPURLResponse else {
+                throw APIError.invalidResponse
+            }
+            guard (200...299).contains(httpResp.statusCode) else {
+                let bodyString = String(data: data, encoding: .utf8) ?? "No body"
+                throw APIError.serverError("Status \(httpResp.statusCode): \(bodyString)")
+            }
+            do {
+                return try jsonDecoder.decode(T.self, from: data)
+            } catch {
+                throw APIError.decodingError(error.localizedDescription)
+            }
         } catch {
-            throw APIError.decodingError(error.localizedDescription)
+            Crashlytics.crashlytics().record(error: error)
+            throw error
         }
     }
     

@@ -7,7 +7,7 @@
 // SignInView.swift
 import SwiftUI
 import GoogleSignIn
-
+import FirebaseCrashlytics
 
 struct SignInView: View {
     @EnvironmentObject var authVM: AuthViewModel
@@ -123,6 +123,7 @@ struct SignInView: View {
                 case .success(let auth):
                     authVM.signInSucceeded(with: auth.access_token)
                 case .failure(let err):
+                    Crashlytics.crashlytics().record(error: err)
                     errorMessage = err.localizedDescription
                 }
             }

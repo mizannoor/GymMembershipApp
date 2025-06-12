@@ -10,6 +10,7 @@ import Combine
 import SwiftUI
 import GoogleSignIn
 import FirebaseAnalytics
+import FirebaseCrashlytics
 
 // MARK: - Loadable Protocol
 
@@ -112,29 +113,37 @@ final class AuthViewModel: ObservableObject {
     }
 
     func signInSucceeded(with token: String) {
-        KeychainHelper.standard.save(
-            Data(token.utf8),
-            service: Constants.keychainService,
-            account: Constants.keychainAccount
-        )
-        isAuthenticated = true
-        
-        Analytics.logEvent("login_success", parameters: [
-            "method": "google"
-        ])
+        do {
+            KeychainHelper.standard.save(
+                Data(token.utf8),
+                service: Constants.keychainService,
+                account: Constants.keychainAccount
+            )
+            isAuthenticated = true
+            Analytics.logEvent("login_success", parameters: [
+                "method": "google"
+            ])
+        } catch {
+            Crashlytics.crashlytics().record(error: error)
+            errorMessage = error.localizedDescription
+        }
     }
 
     func signOut() {
-        Analytics.logEvent("logout", parameters: [
-            "method": "manual"
-        ])
-
-        KeychainHelper.standard.save(
-            Data(),
-            service: Constants.keychainService,
-            account: Constants.keychainAccount
-        )
-        isAuthenticated = false
+        do {
+            Analytics.logEvent("logout", parameters: [
+                "method": "manual"
+            ])
+            KeychainHelper.standard.save(
+                Data(),
+                service: Constants.keychainService,
+                account: Constants.keychainAccount
+            )
+            isAuthenticated = false
+        } catch {
+            Crashlytics.crashlytics().record(error: error)
+            errorMessage = error.localizedDescription
+        }
     }
 }
 
