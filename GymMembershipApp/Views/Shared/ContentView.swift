@@ -23,7 +23,8 @@ struct ContentView: View {
                 authenticatedView
                     .onAppear { startSessionTimer() }
                     .onDisappear { stopSessionTimer() }
-                    .highPriorityGesture(
+                    .contentShape(Rectangle())
+                    .gesture(
                         DragGesture(minimumDistance: 0)
                             .onChanged { _ in resetSessionTimer() }
                     )
