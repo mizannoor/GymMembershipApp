@@ -24,16 +24,7 @@ struct ContentView: View {
                     .onAppear { startSessionTimer() }
                     .onDisappear { stopSessionTimer() }
                     .background(
-                        Color.clear
-                            .contentShape(Rectangle())
-                            .gesture(
-                                DragGesture(minimumDistance: 0)
-                                    .onChanged { _ in resetSessionTimer() }
-                                    .onEnded { _ in resetSessionTimer() }
-                            )
-                            .simultaneousGesture(
-                                TapGesture().onEnded { resetSessionTimer() }
-                            )
+                        InteractionResetter(resetSessionTimer: resetSessionTimer)
                     )
             } else {
                 // Show SignInView for unauthenticated users
@@ -118,5 +109,33 @@ struct ContentView_Previews: PreviewProvider {
     static var previews: some View {
         ContentView()
             .environmentObject(AuthViewModel())
+    }
+}
+
+// Add this struct at the bottom of the file (outside ContentView)
+struct InteractionResetter: UIViewRepresentable {
+    let resetSessionTimer: () -> Void
+    func makeUIView(context: Context) -> UIView {
+        let view = UIView()
+        let tap = UITapGestureRecognizer(target: context.coordinator, action: #selector(Coordinator.handleInteraction))
+        let pan = UIPanGestureRecognizer(target: context.coordinator, action: #selector(Coordinator.handleInteraction))
+        view.addGestureRecognizer(tap)
+        view.addGestureRecognizer(pan)
+        view.isUserInteractionEnabled = true
+        view.backgroundColor = .clear
+        return view
+    }
+    func updateUIView(_ uiView: UIView, context: Context) {}
+    func makeCoordinator() -> Coordinator {
+        Coordinator(resetSessionTimer: resetSessionTimer)
+    }
+    class Coordinator: NSObject {
+        let resetSessionTimer: () -> Void
+        init(resetSessionTimer: @escaping () -> Void) {
+            self.resetSessionTimer = resetSessionTimer
+        }
+        @objc func handleInteraction() {
+            resetSessionTimer()
+        }
     }
 }
