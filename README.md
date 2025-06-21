@@ -23,28 +23,69 @@ This is the **iOS mobile frontend** for the Gym Membership System. Built using S
 ## 📁 Project Structure
 
 ```bash
-GymMembershipApp/
-├── Models/
-│   ├── User.swift
-│   ├── Membership.swift
-│   └── Plan.swift
-├── ViewModels/
-│   ├── AuthViewModel.swift
-│   ├── MembershipViewModel.swift
-│   └── PaymentViewModel.swift
-├── Views/
-│   ├── LoginView\.swift
-│   ├── DashboardView\.swift
-│   ├── PlanListView\.swift
-│   ├── PaymentView\.swift
-│   └── QRCodeView\.swift
-├── Services/
-│   ├── APIService.swift
-│   └── AuthService.swift
-├── Resources/
-│   └── Assets.xcassets
-├── GymMembershipAppApp.swift
-└── Info.plist
+.
+├── GymMembershipApp
+│   ├── Assets.xcassets
+│   │   ├── AccentColor.colorset
+│   │   │   └── Contents.json
+│   │   ├── AppIcon.appiconset
+│   │   │   └── Contents.json
+│   │   ├── AppLogo.imageset
+│   │   │   ├── AppLogo.jpeg
+│   │   │   └── Contents.json
+│   │   ├── google_logo.imageset
+│   │   │   ├── google_logo.png
+│   │   │   └── Contents.json
+│   │   └── Contents.json
+│   ├── GoogleService-Info.plist
+│   ├── Info.plist
+│   ├── Models
+│   │   ├── Entities.swift
+│   │   └── ViewModel.swift
+│   ├── Preview Content
+│   │   └── Preview Assets.xcassets
+│   │       └── Contents.json
+│   ├── Services
+│   │   └── Services.swift
+│   ├── Utilities
+│   │   └── Constants.swift
+│   └── Views
+│       ├── Account
+│       │   └── ProfileView.swift
+│       ├── Authentication
+│       │   ├── GoogleButtons.swift
+│       │   └── SignInView.swift
+│       ├── Dashboard
+│       │   └── DashboardView.swift
+│       ├── Payments
+│       │   ├── PaymentHistoryView.swift
+│       │   └── PaymentView.swift
+│       ├── Plans
+│       │   └── PlanSelectionView.swift
+│       └── Shared
+│           ├── ContentView.swift
+│           ├── GymMembershipAppApp.swift
+│           ├── MenuOption.swift
+│           ├── PrivacyPolicyView.swift
+│           ├── ReusableComponents.swift
+│           └── SideMenu.swift
+├── GymMembershipApp.xcodeproj
+│   ├── project.pbxproj
+│   ├── project.xcworkspace
+│   │   └── contents.xcworkspacedata
+│   ├── xcshareddata
+│   │   └── xcschemes
+│   │       └── GymMembershipApp.xcscheme
+│   └── xcuserdata
+│       └── imac4.xcuserdatad
+│           ├── xcdebugger
+│           └── xcschemes
+├── GymMembershipAppTests
+│   └── GymMembershipAppTests.swift
+├── GymMembershipAppUITests
+│   ├── GymMembershipAppUITests.swift
+│   └── GymMembershipAppUITestsLaunchTests.swift
+└── README.md
 ```
 
 
