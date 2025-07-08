@@ -63,6 +63,8 @@ struct ContentView: View {
                         PlanSelectionView()
                     case .payments:
                         PaymentHistoryView()
+                    case .copilotUsage:
+                        CopilotUsageView()
                     case .account:                                       // <-- new
                         ProfileView()
                     case .signOut:

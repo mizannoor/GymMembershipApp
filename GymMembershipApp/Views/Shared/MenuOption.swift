@@ -13,6 +13,7 @@ enum MenuOption: String, CaseIterable, Identifiable {
     case dashboard
     case plans
     case payments
+    case copilotUsage
     case account    // <-- new
     case signOut
 
@@ -23,6 +24,7 @@ enum MenuOption: String, CaseIterable, Identifiable {
         case .dashboard: return "house"
         case .plans:     return "doc.plaintext"
         case .payments:  return "creditcard"
+        case .copilotUsage: return "brain.head.profile"
         case .account:   return "person.circle"   // <-- new
         case .signOut:   return "arrow.backward.square"
         }
@@ -33,6 +35,7 @@ enum MenuOption: String, CaseIterable, Identifiable {
         case .dashboard: return "Dashboard"
         case .plans:     return "Plans"
         case .payments:  return "Payments"
+        case .copilotUsage: return "Copilot Usage"
         case .account:   return "Account"         // <-- new
         case .signOut:   return "Sign Out"
         }

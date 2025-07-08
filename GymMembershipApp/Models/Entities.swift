@@ -155,6 +155,92 @@ struct Status: Codable, Identifiable {
 }
 
 
+// MARK: - CopilotUsage
+/// Represents copilot agent usage statistics for a user
+struct CopilotUsage: Codable, Identifiable {
+    let id: Int
+    let userId: Int
+    let interactionType: String // e.g., "workout_suggestion", "nutrition_advice", "form_correction"
+    let timestamp: String       // ISO8601 timestamp
+    let duration: Int          // Duration in seconds
+    let satisfied: Bool        // Whether user was satisfied with the interaction
+    let feedback: String?      // Optional user feedback
+    
+    private enum CodingKeys: String, CodingKey {
+        case id
+        case userId = "user_id"
+        case interactionType = "interaction_type"
+        case timestamp
+        case duration
+        case satisfied
+        case feedback
+    }
+    
+    var formattedTimestamp: String {
+        let isoFormatter = ISO8601DateFormatter()
+        guard let date = isoFormatter.date(from: timestamp) else { return timestamp }
+        
+        let formatter = DateFormatter()
+        formatter.dateStyle = .medium
+        formatter.timeStyle = .short
+        return formatter.string(from: date)
+    }
+    
+    var formattedDuration: String {
+        let minutes = duration / 60
+        let seconds = duration % 60
+        if minutes > 0 {
+            return "\(minutes)m \(seconds)s"
+        } else {
+            return "\(seconds)s"
+        }
+    }
+}
+
+// MARK: - CopilotUsageStats
+/// Summary statistics for copilot usage
+struct CopilotUsageStats: Codable {
+    let totalInteractions: Int
+    let totalDuration: Int      // Total duration in seconds
+    let averageDuration: Double // Average duration in seconds
+    let satisfactionRate: Double // Percentage of satisfied interactions
+    let mostUsedFeature: String?
+    let thisWeekInteractions: Int
+    let thisMonthInteractions: Int
+    
+    private enum CodingKeys: String, CodingKey {
+        case totalInteractions = "total_interactions"
+        case totalDuration = "total_duration" 
+        case averageDuration = "average_duration"
+        case satisfactionRate = "satisfaction_rate"
+        case mostUsedFeature = "most_used_feature"
+        case thisWeekInteractions = "this_week_interactions"
+        case thisMonthInteractions = "this_month_interactions"
+    }
+    
+    var formattedTotalDuration: String {
+        let hours = totalDuration / 3600
+        let minutes = (totalDuration % 3600) / 60
+        if hours > 0 {
+            return "\(hours)h \(minutes)m"
+        } else {
+            return "\(minutes)m"
+        }
+    }
+    
+    var formattedSatisfactionRate: String {
+        String(format: "%.1f%%", satisfactionRate * 100)
+    }
+}
+
+// MARK: - CopilotUsageResponse
+/// Response structure for copilot usage API
+struct CopilotUsageResponse: Codable {
+    let stats: CopilotUsageStats
+    let recentInteractions: [CopilotUsage]
+    let message: String?
+}
+
 // MARK: - EmptyResponse
 /// A placeholder type for APIs that return no meaningful JSON payload.
 struct EmptyResponse: Decodable { }

@@ -359,4 +359,28 @@ final class APIClient {
         let request = try makeRequest(path: "user")
         return try await sendRequest(request)
     }
+    
+    /// 13) Fetch copilot usage statistics and recent interactions.
+    func fetchCopilotUsage() async throws -> CopilotUsageResponse {
+        let request = try makeRequest(path: "copilot/usage")
+        return try await sendRequest(request)
+    }
+    
+    /// 14) Log a new copilot interaction.
+    func logCopilotInteraction(
+        type: String,
+        duration: Int,
+        satisfied: Bool,
+        feedback: String? = nil
+    ) async throws {
+        let body: [String: Any] = [
+            "interaction_type": type,
+            "duration": duration,
+            "satisfied": satisfied,
+            "feedback": feedback as Any
+        ]
+        let jsonData = try JSONSerialization.data(withJSONObject: body)
+        let request = try makeRequest(path: "copilot/interaction", method: "POST", body: jsonData)
+        let _: EmptyResponse = try await sendRequest(request)
+    }
 }

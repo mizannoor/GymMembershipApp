@@ -320,3 +320,40 @@ class PaymentHistoryViewModel: ObservableObject, Loadable {
         }
     }
 }
+
+// MARK: - CopilotUsageViewModel
+@MainActor
+class CopilotUsageViewModel: ObservableObject, Loadable {
+    @Published var stats: CopilotUsageStats?
+    @Published var recentInteractions: [CopilotUsage] = []
+    @Published var isLoading = false
+    @Published var errorMessage: String?
+    
+    /// Loads copilot usage statistics and recent interactions
+    func loadUsageData() {
+        perform({
+            try await APIClient.shared.fetchCopilotUsage()
+        }) { response in
+            self.stats = response.stats
+            self.recentInteractions = response.recentInteractions
+            
+            Analytics.logEvent("copilot_usage_viewed", parameters: [
+                "total_interactions": response.stats.totalInteractions,
+                "satisfaction_rate": response.stats.satisfactionRate
+            ])
+        }
+    }
+    
+    /// Logs a new copilot interaction
+    func logCopilotInteraction(type: String, duration: Int, satisfied: Bool, feedback: String? = nil) {
+        Analytics.logEvent("copilot_interaction", parameters: [
+            "interaction_type": type,
+            "duration": duration,
+            "satisfied": satisfied,
+            "has_feedback": feedback != nil
+        ])
+        
+        // Optionally refresh data after logging
+        loadUsageData()
+    }
+}
