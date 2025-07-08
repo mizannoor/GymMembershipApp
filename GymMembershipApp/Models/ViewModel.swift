@@ -332,7 +332,9 @@ class CopilotUsageViewModel: ObservableObject, Loadable {
     /// Loads copilot usage statistics and recent interactions
     func loadUsageData() {
         perform({
-            try await APIClient.shared.fetchCopilotUsage()
+            // For now, return mock data since backend might not be ready
+            // TODO: Replace with actual API call when backend is implemented
+            try await loadMockData()
         }) { response in
             self.stats = response.stats
             self.recentInteractions = response.recentInteractions
@@ -344,6 +346,76 @@ class CopilotUsageViewModel: ObservableObject, Loadable {
         }
     }
     
+    /// Mock data loader for development/testing
+    private func loadMockData() async throws -> CopilotUsageResponse {
+        // Simulate network delay
+        try await Task.sleep(nanoseconds: 1_000_000_000) // 1 second
+        
+        let mockStats = CopilotUsageStats(
+            totalInteractions: 47,
+            totalDuration: 2760, // 46 minutes
+            averageDuration: 58.7,
+            satisfactionRate: 0.85,
+            mostUsedFeature: "workout_suggestion",
+            thisWeekInteractions: 8,
+            thisMonthInteractions: 23
+        )
+        
+        let mockInteractions = [
+            CopilotUsage(
+                id: 1,
+                userId: 123,
+                interactionType: "workout_suggestion",
+                timestamp: "2025-07-08T10:30:00Z",
+                duration: 75,
+                satisfied: true,
+                feedback: "Great personalized workout plan!"
+            ),
+            CopilotUsage(
+                id: 2,
+                userId: 123,
+                interactionType: "nutrition_advice",
+                timestamp: "2025-07-07T14:15:00Z",
+                duration: 45,
+                satisfied: true,
+                feedback: "Very helpful meal suggestions"
+            ),
+            CopilotUsage(
+                id: 3,
+                userId: 123,
+                interactionType: "form_correction",
+                timestamp: "2025-07-06T09:45:00Z",
+                duration: 90,
+                satisfied: false,
+                feedback: "Feedback was not very clear"
+            ),
+            CopilotUsage(
+                id: 4,
+                userId: 123,
+                interactionType: "workout_suggestion",
+                timestamp: "2025-07-05T16:20:00Z",
+                duration: 60,
+                satisfied: true,
+                feedback: nil
+            ),
+            CopilotUsage(
+                id: 5,
+                userId: 123,
+                interactionType: "nutrition_advice",
+                timestamp: "2025-07-04T11:10:00Z",
+                duration: 30,
+                satisfied: true,
+                feedback: "Perfect timing for my diet goals"
+            )
+        ]
+        
+        return CopilotUsageResponse(
+            stats: mockStats,
+            recentInteractions: mockInteractions,
+            message: "Mock data loaded successfully"
+        )
+    }
+    
     /// Logs a new copilot interaction
     func logCopilotInteraction(type: String, duration: Int, satisfied: Bool, feedback: String? = nil) {
         Analytics.logEvent("copilot_interaction", parameters: [
@@ -353,7 +425,40 @@ class CopilotUsageViewModel: ObservableObject, Loadable {
             "has_feedback": feedback != nil
         ])
         
-        // Optionally refresh data after logging
-        loadUsageData()
+        // For now, just log to analytics. Backend integration can be added later.
+        // TODO: Add actual API call to log interaction when backend is ready
+        
+        // Add a mock interaction to the beginning of the list for immediate feedback
+        let newInteraction = CopilotUsage(
+            id: Int.random(in: 1000...9999),
+            userId: 123,
+            interactionType: type,
+            timestamp: ISO8601DateFormatter().string(from: Date()),
+            duration: duration,
+            satisfied: satisfied,
+            feedback: feedback
+        )
+        
+        // Insert at the beginning of recent interactions
+        recentInteractions.insert(newInteraction, at: 0)
+        
+        // Update stats if available
+        if var currentStats = stats {
+            currentStats = CopilotUsageStats(
+                totalInteractions: currentStats.totalInteractions + 1,
+                totalDuration: currentStats.totalDuration + duration,
+                averageDuration: Double(currentStats.totalDuration + duration) / Double(currentStats.totalInteractions + 1),
+                satisfactionRate: currentStats.satisfactionRate, // Simplified for mock
+                mostUsedFeature: currentStats.mostUsedFeature,
+                thisWeekInteractions: currentStats.thisWeekInteractions + 1,
+                thisMonthInteractions: currentStats.thisMonthInteractions + 1
+            )
+            stats = currentStats
+        }
+        
+        // Keep only the most recent 10 interactions for UI performance
+        if recentInteractions.count > 10 {
+            recentInteractions = Array(recentInteractions.prefix(10))
+        }
     }
 }
